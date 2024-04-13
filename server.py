@@ -21,6 +21,9 @@ if __name__ == "__main__":
 # Crtl C
 # now we push this up to GH
 
+# So next thing we need to do is pull that down into a Python anywhere.
+
+
 
 
 
