@@ -1,13 +1,79 @@
-from flask import Flask
+from flask import Flask, jsonify, request, abort
+from bookDAO import bookDAO
 
-app = Flask(__name__)
+app = Flask(__name__, static_url_path='', static_folder='.')
+
+#app = Flask(__name__)
 
 @app.route('/')
 def index():
-    return "Hello Ibu"
+    return "Hello, World!"
 
-if __name__ == "__main__":
-    app.run(debug = True)
+#curl "http://127.0.0.1:5000/books"
+@app.route('/books')
+def getAll():
+    #print("in getall")
+    results = bookDAO.getAll()
+    return jsonify(results)
+
+#curl "http://127.0.0.1:5000/books/2"
+@app.route('/books/<int:id>')
+def findById(id):
+    foundBook = bookDAO.findByID(id)
+
+    return jsonify(foundBook)
+
+#curl  -i -H "Content-Type:application/json" -X POST -d "{\"title\":\"hello\",\"author\":\"someone\",\"price\":123}" http://127.0.0.1:5000/books
+@app.route('/books', methods=['POST'])
+def create():
+    
+    if not request.json:
+        abort(400)
+    # other checking 
+    book = {
+        "title": request.json['title'],
+        "author": request.json['author'],
+        "price": request.json['price'],
+    }
+    addedbook = bookDAO.create(book)
+    
+    return jsonify(addedbook)
+
+#curl  -i -H "Content-Type:application/json" -X PUT -d "{\"title\":\"hello\",\"author\":\"someone\",\"price\":123}" http://127.0.0.1:5000/books/1
+@app.route('/books/<int:id>', methods=['PUT'])
+def update(id):
+    foundBook = bookDAO.findByID(id)
+    if not foundBook:
+        abort(404)
+    
+    if not request.json:
+        abort(400)
+    reqJson = request.json
+    if 'price' in reqJson and type(reqJson['price']) is not int:
+        abort(400)
+
+    if 'title' in reqJson:
+        foundBook['title'] = reqJson['title']
+    if 'author' in reqJson:
+        foundBook['author'] = reqJson['author']
+    if 'price' in reqJson:
+        foundBook['price'] = reqJson['price']
+    bookDAO.update(id,foundBook)
+    return jsonify(foundBook)
+        
+
+    
+
+@app.route('/books/<int:id>' , methods=['DELETE'])
+def delete(id):
+    bookDAO.delete(id)
+    return jsonify({"done":True})
+
+
+
+
+if __name__ == '__main__' :
+    app.run(debug= True)
 
 # because I'm going to be do this on a different machine, I should set up a virtual environment to do that
 # python -m venv venv
@@ -93,7 +159,11 @@ if __name__ == "__main__":
 
 
 
-# what abt the one uve already done? > open server.py in deploytopythonanywhere inside wsaa-coursework/lab
+# what abt the one uve already done? replace server containing Hello ibu with original server in original deploytopythonanywhere in lab
+
+
+
+# > open server.py in deploytopythonanywhere inside wsaa-coursework/lab
 # assuming u have a db already: 127.0.0.1:5000/bookviewer.html
 # u need bookDAO.py, bookviewer.html, dbconfig_template.py, dbconfig.py together with server.py 
 # push all files in the folder on github
@@ -104,6 +174,85 @@ if __name__ == "__main__":
 
 
 
+
+
+
+# if error: ModuleNotFoundError: No module named 'mysql' in venv, pip install mysql-connector, then pip freeze > requirements.txt
+# pip install flask, then pip freeze > requirements.txt
+# http://127.0.0.1:5000 should get hello world
+# http://127.0.0.1:5000/bookviewer.html should work
+# push to github -m "real server"
+
+# go back to pythonanywhere > Databases (top right corner) 
+# create database, enter wsaa, so u will have Name nurbujang$default and nurbujang$wsaa
+# password 7pa..*
+
+# now create a table on this: click nurbujang$wsaa
+# mysql > use nurbujang$wsaa
+# show tables; Empty set
+# create table book ( id int AUTO_INCREMENT PRIMARY KEY,
+#                    author varchar(250),
+#                    title varchar(250),
+#                    price int);
+
+# show tables;
+# exit;
+
+# go back to snake > Console > Bash console 33326338 (this will take the code down), so git pull
+# 14:21 ~ $ cd deploytopythonanywhere
+# 14:22 ~/deploytopythonanywhere (main)$ ls
+# LICENSE  README.md  __pycache__  server.py
+# 14:22 ~/deploytopythonanywhere (main)$ git pull
+# remote: Enumerating objects: 9, done.
+# remote: Counting objects: 100% (9/9), done.
+# remote: Compressing objects: 100% (7/7), done.
+# remote: Total 7 (delta 0), reused 7 (delta 0), pack-reused 0
+# Unpacking objects: 100% (7/7), 4.60 KiB | 55.00 KiB/s, done.
+# From https://github.com/nurbujang/deploytopythonanywhere
+#    f57ca76..9f64fe9  main       -> origin/main
+# Updating f57ca76..9f64fe9
+# Fast-forward
+#  bookDAO.py           | 104 ++++++++++++++++++
+#  bookviewer.html      | 242 +++++++++++++++++++++++++++++++++++++++++
+#  dbconfig.py          |   6 +
+#  dbconfig_template.py |   6 +
+#  server.py            |  91 +++++++++++++++-
+#  5 files changed, 448 insertions(+), 1 deletion(-)
+#  create mode 100644 bookDAO.py
+#  create mode 100644 bookviewer.html
+#  create mode 100644 dbconfig.py
+#  create mode 100644 dbconfig_template.py
+# 14:22 ~/deploytopythonanywhere (main)$ 
+
+# vi dbconfig.py > will still have wrong data > exit
+
+# so go to local machine, copy dbconfig.py and name it as dbconfigpa.py
+
+# go back to pa > Databases (get info here and put in dbconfigpa.py)
+# mysql = {
+#     'host':"nurbujang.mysql.pythonanywhere-services.com",
+#     'user':"nurbujang",
+#     'password':"wsaapassword",
+#     'database':"nurbujang$wsaa"
+# }
+# push on github
+# pull on pa dashboard snake > Console > Bash console 33326338 and git pull
+# 14:40 ~/deploytopythonanywhere (main)$ rm dbconfig.py
+# 14:42 ~/deploytopythonanywhere (main)$ mv dbconfigpa.py dbconfig.py
+# 14:42 ~/deploytopythonanywhere (main)$ less dbconfig.py (to view whats in the file, q to get out)
+
+# go back to pa dash > Web apps > open web tab > Reload > refresh 
+# nurbujang.pythonanywhere.com should say Hello Ibu
+# https://nurbujang.pythonanywhere.com/bookviewer.html
+
+
+
+
+
+
+
+
+ 
 
 
 
